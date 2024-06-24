@@ -23,11 +23,14 @@ def download(folder_name, license_url, mpd_url):
     periods = root.findall('ns0:Period', namespace)
     print(f'Found {len(periods)} periods.')
 
-    if len(periods) > 1:
-        for period in periods:
-            root.remove(period)
+    if len(periods) >= 1:
+        # Use the first period if only one is present
+        if len(periods) == 1:
+            target_period = periods[0]
+        else:
+            target_period = periods[2]
 
-        pssh_elements = periods[2].findall('.//cenc:pssh', namespace)
+        pssh_elements = target_period.findall('.//cenc:pssh', namespace)
         if pssh_elements:
             pssh = pssh_elements[-1].text
             pssh_file_path = os.path.join(folder_name, 'pssh.txt')
@@ -38,7 +41,7 @@ def download(folder_name, license_url, mpd_url):
             api_url = "https://cdrm-project.com/"
             json_data = {
                 "PSSH": pssh,
-                "License URL": license_url,
+                "License URL": 'https://wdvn.blutv.com/',
                 "Headers": "{'User-Agent': 'Mozilla/5.0'}",
                 "JSON": "{}",
                 "Cookies": "{}",
@@ -47,6 +50,7 @@ def download(folder_name, license_url, mpd_url):
             }
 
             response = request.post(api_url, json=json_data)
+            response.raise_for_status()
             response_data = response.json()['Message']
             keys = [line for line in response_data.strip().split('\n') if line]
 
@@ -63,34 +67,44 @@ def download(folder_name, license_url, mpd_url):
             print("Tags <pssh> not found.")
             sys.exit(1)
 
-        root.append(periods[2])
+        # If there are multiple periods, retain the third period
+        if len(periods) > 1:
+            for period in periods:
+                root.remove(period)
+            root.append(target_period)
 
-        base_urls = periods[2].findall('ns0:BaseURL', namespace)
-        for base_url in base_urls:
-            base_url.text = domain + base_url.text
+            base_urls = target_period.findall('ns0:BaseURL', namespace)
+            for base_url in base_urls:
+                base_url.text = domain + base_url.text
 
-        tree = ET.ElementTree(root)
-        ET.register_namespace('', 'urn:mpeg:dash:schema:mpd:2011')
+            tree = ET.ElementTree(root)
+            ET.register_namespace('', 'urn:mpeg:dash:schema:mpd:2011')
 
-        new_mpd_file = os.path.join(folder_name, './dest.mpd')
-        tree.write(new_mpd_file, encoding='utf-8', xml_declaration=True)
-        print("File was successfully saved.")
-    elif len(periods) == 1:
-        print("Single period found, using original MPD file.")
-        new_mpd_file = os.path.join(folder_name, 'dest.mpd')
-        if os.path.exists(new_mpd_file):
-            os.remove(new_mpd_file)
-        os.rename(original_mpd_file, new_mpd_file)
+            new_mpd_file = os.path.join(folder_name, 'dest.mpd')
+            tree.write(new_mpd_file, encoding='utf-8', xml_declaration=True)
+            print("File was successfully saved.")
+        else:
+            print("Single period found, using original MPD file.")
+            new_mpd_file = os.path.join(folder_name, 'dest.mpd')
+            if os.path.exists(new_mpd_file):
+                os.remove(new_mpd_file)
+            os.rename(original_mpd_file, new_mpd_file)
 
-        # Print URLs for debugging
-        for adaptation_set in root.findall('.//ns0:AdaptationSet', namespace):
-            for representation in adaptation_set.findall('ns0:Representation', namespace):
-                for base_url in representation.findall('ns0:BaseURL', namespace):
-                    print(f"BaseURL: {base_url.text}")
+            # Print URLs for debugging
+            for adaptation_set in root.findall('.//ns0:AdaptationSet', namespace):
+                for representation in adaptation_set.findall('ns0:Representation', namespace):
+                    for base_url in representation.findall('ns0:BaseURL', namespace):
+                        print(f"BaseURL: {base_url.text}")
     else:
         print("File contains no periods.")
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    download()
+    if len(sys.argv) != 4:
+        print("Usage: python download_mpd.py <folder_name> <license_url> <mpd_url>")
+        sys.exit(1)
+    folder_name = sys.argv[1]
+    license_url = sys.argv[2]
+    mpd_url = sys.argv[3]
+    download(folder_name, license_url, mpd_url)

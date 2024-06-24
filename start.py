@@ -53,6 +53,7 @@ def process_csv(file_path, delete_rows):
 
 
 def main():
+    subprocess.run(["python", "extract_links.py"], check=True)
     parser = argparse.ArgumentParser(description='Process a CSV file and execute commands.')
     parser.add_argument('csv_file', help='Path to the CSV file')
     parser.add_argument('-D', action='store_true', help='Delete rows after processing')
