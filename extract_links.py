@@ -84,8 +84,8 @@ for title, link in links:
 
     username_input = driver.find_element(By.XPATH, '//input[@data-testid="input-username-login"]')
     password_input = driver.find_element(By.XPATH, '//input[@data-testid="input-password-login"]')
-    username_input.send_keys('creatives-europu@talentmail.world')
-    password_input.send_keys('$>b7@jYhZnB/Pt?')
+    username_input.send_keys('login')
+    password_input.send_keys('password')
 
     # Знаходимо і натискаємо кнопку входу
     submit_button = driver.find_element(By.XPATH, '//button[@data-testid="button-login"]')
