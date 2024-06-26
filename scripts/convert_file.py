@@ -21,7 +21,7 @@ def convert_and_merge(folder_name):
     audio_file = os.path.join(folder_name, 'audio-0-0.mp4')
     video_file = os.path.join(folder_name, 'video-0-4.mp4')
     audio_output_file = os.path.join(folder_name, 'film_audio.aac')
-    merged_output_file = os.path.join(folder_name, 'final_video.mp4')
+    merged_output_file = os.path.join(folder_name, f'{os.path.basename(folder_name)}.mp4')
 
     # Find ffmpeg
     ffmpeg_path = find_ffmpeg()

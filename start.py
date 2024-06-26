@@ -13,6 +13,13 @@ script_dir = os.path.join(os.getcwd(), 'scripts')
 sys.path.append(script_dir)
 
 
+def delete_specific_files(dir_path, files_to_delete):
+    for filename in files_to_delete:
+        file_path = os.path.join(dir_path, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+
 def handle(folder_name, license_url, mpd_url, base_url):
     print("Download mpd:")
     download_mpd.download(folder_name, license_url, mpd_url)
@@ -25,6 +32,9 @@ def handle(folder_name, license_url, mpd_url, base_url):
 
     print("Convert and merge files:")
     convert_file.convert_and_merge(folder_name)
+
+    files_to_delete = ['subs.txt', 'pssh.txt', 'keys.txt', 'dest.mpd', 'audio-0-0.mp4', 'video-0-4.mp4', 'film_audio.aac']
+    delete_specific_files(folder_name, files_to_delete)
 
 
 def process_csv(file_path, delete_rows):

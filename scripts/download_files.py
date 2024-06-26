@@ -74,6 +74,28 @@ def download(dir_path, base_url):
     except subprocess.CalledProcessError as e:
         print(f"Error downloading audio file: {e}")
 
+    def download_subtitles(dir_path):
+        # Перевірити, чи існує файл subs.txt
+        subs_file_path = os.path.join(dir_path, 'subs.txt')
+        if not os.path.exists(subs_file_path):
+            print(f"Warning: {subs_file_path} does not exist. Skipping subtitle download.")
+            return
+
+        # Відкрити файл subs.txt для читання
+        with open(subs_file_path, 'r') as file:
+            lines = file.readlines()
+
+        # Для кожного ря��ка в файлі
+        for i, line in enumerate(lines):
+            # Розділити рядок на мову та посилання
+            lang, link = line.strip().split(': ')
+
+            # Використати yt-dlp для завантаження субтитрів
+            cmd = ['yt-dlp', '-o', os.path.join(dir_path, f'subtitles_{lang}.vtt'), link]
+            subprocess.run(cmd, check=True)
+
+    download_subtitles(dir_path)
+
 
 if __name__ == "__main__":
     download()

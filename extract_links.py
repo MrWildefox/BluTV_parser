@@ -1,3 +1,5 @@
+from bs4 import BeautifulSoup
+import re
 from browsermobproxy import Server
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -8,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import csv
+import os
 
 # Шлях до BrowserMob Proxy
 bmp_path = "browsermob-proxy-2.1.4/bin/browsermob-proxy.bat"
@@ -44,14 +47,24 @@ def read_links_from_csv(file_path):
 
 
 def write_links_to_csv(file_path, links):
+    existing_links = []
+    # Читаємо вміст CSV файлу
+    if os.path.exists(file_path):
+        with open(file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=';')
+            for row in reader:
+                if len(row) > 1:  # Ensure there is a link in the row
+                    existing_links.append(row[3])  # Append the processed link to the list
+
     with open(file_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';')
         for link in links:
             processed_link = link[1].replace('/output.mpd', '')
-            writer.writerow([link[0], license_url, link[1], processed_link])
+            # Перевіряємо, чи вже існує посилання
+            if processed_link not in existing_links:
+                writer.writerow([link[0], license_url, link[1], processed_link])
 
 
-# Use the function
 links = read_links_from_csv('links.csv')
 license_url = "https://wdvn.blutv.com/"
 for title, link in links:
@@ -91,6 +104,29 @@ for title, link in links:
 
     # Отримуємо перехоплені запити
     result = proxy.har
+
+    html_content = driver.page_source
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Знаходимо всі скрипти на сторінці
+    scripts = soup.find_all('script')
+
+    subtitle_pattern = re.compile(r'"label":"([^"]+)".*?"src":"(https://blutv-subtitle\.mncdn\.com/[^\s,]*\.vtt)"')
+    subtitles = []
+
+    for script in scripts:
+        matches = re.findall(subtitle_pattern, script.text)
+        if matches:
+            subtitles.extend(matches)
+
+    if subtitles:
+        # Створюємо папку з назвою фільму в директорії files, якщо вона ще не існує
+        os.makedirs(os.path.join('files', title), exist_ok=True)
+        # Відкриваємо файл у цій папці для запису посилань
+        with open(os.path.join('files', title, 'subs.txt'), 'w') as file:
+            for label, link in subtitles:
+                file.write(f"{label}: {link}\n")
+                print(f'Written link: {label}: {link}')  # Додаємо друк знайдених посилань
 
     for entry in result['log']['entries']:
         url = entry['request']['url']
